@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Convite — Máquina de escrever</title>
+<style>
+  :root{
+    --text:#0e0e0e;
+    --muted:#333;
+    --highlight:#111;      /* cor do <strong> */
+    --speed:42ms;          /* velocidade por caractere */
+    --punct-pause:260ms;   /* pausa extra após .,!?;: */
+    --line-gap:10px;       /* espaço entre linhas */
+    --caret:#111;          /* cor do cursor */
+  }
+  html,body{margin:0;padding:0;background:transparent;color:var(--text);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial}
+  .wrap{max-width:820px;margin:0 auto;padding:6px 4px 12px}
+  h2{margin:0 0 .35rem;font-weight:800;letter-spacing:.2px;font-size:clamp(1.55rem,3.4vw,2rem)}
+  .line{margin:var(--line-gap) 0;color:var(--muted);font-size:clamp(1rem,2.1vw,1.12rem)}
+  .type{
+    position:relative; display:inline-block; min-height:1em;
+  }
+  .caret{
+    display:inline-block; width:8px; height:1.1em; margin-left:2px; background:var(--caret);
+    transform:translateY(2px); animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50%{opacity:0} }
+  strong{color:var(--highlight)}
+  /* sem animação: mostra tudo de uma vez e esconde o cursor */
+  @media (prefers-reduced-motion: reduce){
+    .caret{display:none !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2 class="line"><span class="type" data-text="Pronto para começar?"></span><span class="caret" aria-hidden="true"></span></h2>
+
+  <p class="line"><span class="type" data-text="A segurança é construída <strong>todos os dias</strong>, em cada inspeção, conversa e decisão."></span></p>
+  <p class="line"><span class="type" data-text="Agora é hora de dar o primeiro passo."></span></p>
+
+  <p class="line"><span class="type" data-text="Sua jornada começa na área de manutenção."></span></p>
+  <p class="line"><span class="type" data-text="Observe, perceba o risco e escolha o caminho seguro."></span></p>
+</div>
+
+<script>
+(function(){
+  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const els = document.querySelectorAll('.type');
+
+  // Se preferir sem animação, renderiza tudo e sai
+  if(prefersReduced){
+    els.forEach(el=>{ el.innerHTML = el.getAttribute('data-text'); });
+    return;
+  }
+
+  const speed = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--speed')) || 45;
+  const punctPause = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--punct-pause')) || 250;
+  const caret = document.querySelector('.caret');
+
+  // Digita elementos em sequência
+  let i = 0;
+  const next = () => {
+    if(i >= els.length){ caret && caret.remove(); return; }
+    typewriter(els[i], els[i].getAttribute('data-text'), () => {
+      // move o cursor para o fim da linha atual e passa para a próxima
+      if(caret){ els[i].after(caret); }
+      i++; next();
+    });
+  };
+  next();
+
+  // Typewriter que respeita tags HTML (ex.: <strong>), sem atrasar dentro das tags
+  function typewriter(el, html, done){
+    el.innerHTML = '';
+    let idx = 0;
+
+    (function step(){
+      if(idx >= html.length){ done && setTimeout(done, speed); return; }
+
+      // Se encontrar uma tag HTML, escreve-a inteira sem pausar
+      if(html[idx] === '<'){
+        const close = html.indexOf('>', idx);
+        el.innerHTML += html.slice(idx, close + 1);
+        idx = close + 1;
+        requestAnimationFrame(step);
+        return;
+      }
+
+      el.innerHTML += html[idx];
+
+      // Pausa maior após pontuação final
+      const ch = html[idx];
+      idx++;
+
+      let delay = speed;
+      if(/[.,!?:;]/.test(ch)) delay += punctPause;
+
+      setTimeout(step, delay);
+    })();
+  }
+})();
+</script>
+</body>
+</html>
